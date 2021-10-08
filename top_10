@@ -1,0 +1,34 @@
+view: top_10 {
+  derived_table: {
+    persist_for: "24 hours"
+    sql: -- Did not use order_items::simple_rollup; contained filters not in the query: order_items.created_date
+      SELECT
+          TRIM(products.brand)  AS brand,
+          COALESCE(SUM(order_items.sale_price ), 0) AS order_items_total_sale_price,
+          RANK() OVER (ORDER BY COALESCE(SUM(order_items.sale_price ), 0) DESC )
+      FROM looker-private-demo.ecomm.order_items  AS order_items
+      FULL OUTER JOIN looker-private-demo.ecomm.inventory_items  AS inventory_items ON inventory_items.id = order_items.inventory_item_id
+      LEFT JOIN looker-private-demo.ecomm.products  AS products ON products.id = inventory_items.product_id
+      GROUP BY
+          1
+      ORDER BY
+          2 DESC       ;;
+  }
+
+  dimension: brand {
+    type: string
+    sql: ${TABLE}.brand ;;
+  }
+
+  dimension: order_items_total_sale_price {
+    hidden: yes
+    type: number
+    sql: ${TABLE}.order_items_total_sale_price ;;
+  }
+
+  dimension: rank {
+    view_label: "Products"
+    type: number
+    sql: ${TABLE}.f0_ ;;
+  }
+}
